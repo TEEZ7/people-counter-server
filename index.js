@@ -1,15 +1,18 @@
 const express = require("express");
 const axios = require("axios");
-const bodyParser = require("body-parser");
 
 const app = express();
-app.use(bodyParser.json());
+app.use(express.json());
 
 const LINE_TOKEN = process.env.LINE_TOKEN;
 const LINE_USER_ID = process.env.LINE_USER_ID;
 
+app.get("/", (req, res) => {
+  res.send("LINE Bot Server is running 🚀");
+});
+
 app.post("/update", async (req, res) => {
-  const { people } = req.body;
+  const people = req.body.people;
 
   if (people === undefined) {
     return res.status(400).send("Missing people count");
@@ -34,16 +37,12 @@ app.post("/update", async (req, res) => {
     });
     res.send("Message sent to LINE");
   } catch (error) {
-    console.error(error.response?.data || error.message);
+    console.error("LINE API error:", error.response?.data || error.message);
     res.status(500).send("Failed to send LINE message");
   }
 });
 
-app.get("/", (req, res) => {
-  res.send("LINE Bot Server is running 🚀");
-});
-
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server running on port", PORT);
 });
