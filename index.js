@@ -1,52 +1,104 @@
 const express = require("express");
-const bodyParser = require("body-parser");
 const axios = require("axios");
 
 const app = express();
-app.use(bodyParser.json());
+app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
-const CHANNEL_ACCESS_TOKEN = process.env.CHANNEL_ACCESS_TOKEN;
+const LINE_TOKEN = process.env.LINE_TOKEN;
 
-// ตัวแปรเก็บจำนวนคน (ตัวอย่าง)
-let peopleCount = 5; // เปลี่ยนเป็นค่าจริงจากเซนเซอร์ได้ภายหลัง
+// ตัวอย่างจำนวนคน (สมมติ)
+let peopleCount = 5;
 
+// Webhook จาก LINE
 app.post("/webhook", async (req, res) => {
-  const events = req.body.events;
-  if (!events || events.length === 0) return res.sendStatus(200);
+  const event = req.body.events[0];
+  const replyToken = event.replyToken;
 
-  for (const event of events) {
-    if (event.type === "message" && event.message.type === "text") {
-      const userMessage = event.message.text.trim();
+  // ถ้าผู้ใช้พิมพ์หรือกดปุ่ม
+  if (event.type === "message" && event.message.type === "text") {
+    const userMessage = event.message.text;
 
-      if (userMessage === "ดูจำนวนคน") {
-        await reply(event.replyToken, `ตอนนี้มีคนอยู่ ${peopleCount} คน`);
-      }
+    if (userMessage === "ดูจำนวนคน") {
+      await replyText(replyToken, `ตอนนี้มีคนอยู่ ${peopleCount} คน`);
+    } else {
+      // ส่งปุ่มกลับไป
+      await replyFlex(replyToken);
     }
   }
 
   res.sendStatus(200);
 });
 
-async function reply(replyToken, message) {
+// ฟังก์ชันส่งข้อความธรรมดา
+async function replyText(replyToken, text) {
   await axios.post(
     "https://api.line.me/v2/bot/message/reply",
     {
-      replyToken: replyToken,
-      messages: [{ type: "text", text: message }],
+      replyToken,
+      messages: [{ type: "text", text }],
     },
     {
       headers: {
+        Authorization: `Bearer ${LINE_TOKEN}`,
         "Content-Type": "application/json",
-        Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`,
       },
     }
   );
 }
 
-app.get("/", (req, res) => {
-  res.send("People Counter Server is running!");
-});
+// ฟังก์ชันส่งปุ่ม (Flex Message)
+async function replyFlex(replyToken) {
+  const flexMessage = {
+    type: "flex",
+    altText: "เมนู",
+    contents: {
+      type: "bubble",
+      hero: {
+        type: "image",
+        url: "https://i.imgur.com/7yUvePI.png",
+        size: "full",
+        aspectRatio: "1:1",
+        aspectMode: "cover",
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: "ระบบนับจำนวนคน",
+            weight: "bold",
+            size: "lg",
+          },
+          {
+            type: "button",
+            style: "primary",
+            action: {
+              type: "message",
+              label: "ดูจำนวนคน",
+              text: "ดูจำนวนคน",
+            },
+          },
+        ],
+      },
+    },
+  };
+
+  await axios.post(
+    "https://api.line.me/v2/bot/message/reply",
+    {
+      replyToken,
+      messages: [flexMessage],
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${LINE_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
