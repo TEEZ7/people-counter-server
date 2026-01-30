@@ -19,7 +19,7 @@ app.post("/webhook", async (req, res) => {
   if (event.type === "message" && event.message.type === "text") {
     const userMessage = event.message.text;
 
-    if (userMessage === "ดูจำนวนคน") {
+    if (userMessage === "#จำนวณตอนนี้") {
       await replyText(replyToken, `ตอนนี้มีผู้เข้าใช้ห้องสมุด ${peopleCount} คน`);
     } else {
       // ส่งปุ่มกลับไป
